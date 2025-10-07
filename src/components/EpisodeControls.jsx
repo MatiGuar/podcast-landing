@@ -1,151 +1,154 @@
 // src/components/EpisodeControls.jsx
 import React, { useEffect, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
-import useMixcloudStream from "../hooks/useMixcloudStream";
 
-const EpisodeControls = ({
-  mixcloudUrl,
-  waveColor,
-  progressColor = "#00FFFF",
-  cursorColor,
-  youtubeUrl,
-}) => {
-  const { streamUrl, loading } = useMixcloudStream(mixcloudUrl);
+const fmt = (sec = 0) => {
+  const s = Math.floor(sec % 60).toString().padStart(2, "0");
+  const m = Math.floor((sec / 60) % 60).toString().padStart(2, "0");
+  const h = Math.floor(sec / 3600);
+  return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
+};
+
+export default function EpisodeControls({
+  audioUrl,                         // p.ej. "/audio/ep001.mp3"
+  mixcloudUrl = "",                 // opcional (solo enlace)
+  youtubeUrl = "",                  // opcional (solo enlace)
+  waveColor = "#00E5FF",
+  progressColor = "#00E5FF",
+  cursorColor = "#FFFFFF",
+  mixcloudLogo = "/logos/mixcloudwhite.svg",
+  youtubeLogo  = "/logos/youtube.svg",
+}) {
   const waveformRef = useRef(null);
-  const wavesurfer = useRef(null);
+  const wsRef = useRef(null);
+
+  const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [current, setCurrent] = useState(0);
   const [volume, setVolume] = useState(1);
-  const [volumeFocused, setVolumeFocused] = useState(false);
 
-  // Inicializar WaveSurfer cuando streamUrl esté listo
+  // Crea la instancia SOLO cuando cambia el audio
   useEffect(() => {
-    if (!streamUrl) return;
+    if (!audioUrl || !waveformRef.current) return;
 
-    if (wavesurfer.current) wavesurfer.current.destroy();
+    try { wsRef.current?.destroy(); } catch {}
+    wsRef.current = null;
+    waveformRef.current.innerHTML = "";
 
-    wavesurfer.current = WaveSurfer.create({
+    const ws = WaveSurfer.create({
       container: waveformRef.current,
+      url: audioUrl,
+      backend: "WebAudio",
+      height: 96,
       waveColor,
       progressColor,
       cursorColor,
+      cursorWidth: 1,
       barWidth: 2,
       barGap: 2,
-      height: 80,
-      responsive: true,
       normalize: true,
-      backend: "MediaElement",
+      responsive: true,
+      hideScrollbar: true,
+      splitChannels: false,
+      removeMediaElementOnDestroy: true,
     });
 
-    wavesurfer.current.load(streamUrl);
-    wavesurfer.current.setVolume(volume);
+    ws.on("ready", () => {
+      setIsReady(true);
+      setDuration(ws.getDuration());
+      setCurrent(0);
+      setIsPlaying(false);
+      ws.setVolume(volume);
+    });
+    ws.on("play", () => setIsPlaying(true));
+    ws.on("pause", () => setIsPlaying(false));
+    ws.on("timeupdate", (t) => setCurrent(t));
+    ws.on("finish", () => setIsPlaying(false));
 
-    return () => wavesurfer.current && wavesurfer.current.destroy();
-  }, [streamUrl, waveColor, progressColor, cursorColor]);
+    wsRef.current = ws;
 
-  const togglePlay = () => {
-    if (!wavesurfer.current) return;
-    wavesurfer.current.playPause();
-    setIsPlaying(wavesurfer.current.isPlaying());
-  };
+    return () => {
+      try { ws.destroy(); } catch {}
+      if (waveformRef.current) waveformRef.current.innerHTML = "";
+    };
+  }, [audioUrl]);
 
-  const handleVolumeChange = (e) => {
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-    if (wavesurfer.current) wavesurfer.current.setVolume(newVolume);
-  };
+  // Aplica cambios de color al vuelo (sin recrear)
+  useEffect(() => {
+    wsRef.current?.setOptions({ waveColor, progressColor, cursorColor });
+  }, [waveColor, progressColor, cursorColor]);
+
+  // Volumen
+  useEffect(() => { wsRef.current?.setVolume(volume); }, [volume]);
+
+  const togglePlay = () => wsRef.current?.playPause();
+
+  // Logos chicos (alto fijo, ancho auto)
+  const logoClassMxc = "h-[10px] md:h-[20px] w-90 object-contain";
+  const logoClassYtb = "h-[10px] md:h-[20px] w-100 object-contain";
 
   return (
     <div className="w-full max-w-3xl flex flex-col items-center">
-      {loading && <p className="text-white mb-4">Cargando audio de Mixcloud...</p>}
+      {/* Wave transparente */}
+      <div
+        ref={waveformRef}
+        className="w-full mb-3 rounded-xl overflow-hidden"
+        style={{ background: "transparent" }}
+      />
 
-      <div ref={waveformRef} className="w-full mb-6" />
-
-      <div className="flex justify-between items-center w-full px-4 mb-8">
+      {/* Controles */}
+      <div className="flex flex-wrap gap-3 items-center w-full px-1 md:px-4 mb-4">
         <button
           onClick={togglePlay}
-          className={`text-white transition duration-300 ${
-            isPlaying ? "animate-pulse text-white" : ""
-          }`}
-          onMouseEnter={(e) => (e.currentTarget.style.color = progressColor)}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "white")}
+          disabled={!isReady}
+          aria-label={isPlaying ? "Pausar" : "Reproducir"}
+          className="p-3 rounded-full bg-white/50 text-black hover:bg-white transition disabled:opacity-40"
         >
           {isPlaying ? (
-            <svg
-              className="w-10 h-10"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M10 9v6m4-6v6"
-              />
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 9v6m4-6v6" />
             </svg>
           ) : (
-            <svg
-              className="w-10 h-10"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M14.752 11.168l-5.197-3.027A1 1 0 008 9.027v5.946a1 1 0 001.555.832l5.197-3.027a1 1 0 000-1.664z"
-              />
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7-11-7z" />
             </svg>
           )}
         </button>
 
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={volume}
-          onChange={handleVolumeChange}
-          onFocus={() => setVolumeFocused(true)}
-          onBlur={() => setVolumeFocused(false)}
-          className="custom-slider"
-          style={{
-            appearance: "none",
-            width: "160px",
-            height: "8px",
-            background: `linear-gradient(to right, ${
-              volumeFocused ? progressColor : "#ffffff"
-            } ${volume * 100}%, #333 ${volume * 100}%)`,
-            borderRadius: "9999px",
-            outline: "none",
-            transition: "background 0.3s ease",
-          }}
-        />
+        <div className="text-sm opacity-80 ml-1">{fmt(current)} / {fmt(duration)}</div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-sm font-lttechno  opacity-70">Vol</span>
+          <input
+            type="range" min="0" max="1" step="0.01"
+            value={volume}
+            onChange={(e) => setVolume(Number(e.target.value))}
+            className="w-40"
+            style={{
+              accentColor: progressColor, // color del thumb + tramo lleno
+            }}
+          />
+        </div>
       </div>
 
-      <div className="flex gap-6 mt-14">
-        {mixcloudUrl && (
-          <a href={mixcloudUrl} target="_blank" rel="noopener noreferrer">
-            <img
-              src="logos/mixcloudwhite.svg"
-              alt="Mixcloud"
-              className="w-24 h-24 hover:scale-110 transition shadow-sm"
-            />
+      {/* Logos pequeños */}
+      <div className="flex gap-4 md:gap-6 mt-2 items-center">
+        {mixcloudUrl ? (
+          <a href={mixcloudUrl} target="_blank" rel="noopener noreferrer" title="Escuchar en Mixcloud">
+            <img src={mixcloudLogo} alt="Mixcloud" className={logoClassMxc} />
           </a>
+        ) : (
+          <img src={mixcloudLogo} alt="Mixcloud (no disponible)" className={`${logoClass} opacity-50 cursor-not-allowed`} />
         )}
-        {youtubeUrl && (
-          <a href={youtubeUrl} target="_blank" rel="noopener noreferrer">
-            <img
-              src="logos/youtube.svg"
-              alt="YouTube"
-              className="w-24 h-24 hover:scale-110 transition shadow-sm"
-            />
+        {youtubeUrl ? (
+          <a href={youtubeUrl} target="_blank" rel="noopener noreferrer" title="Ver en YouTube">
+            <img src={youtubeLogo} alt="YouTube" className={logoClassYtb} />
           </a>
+        ) : (
+          <img src={youtubeLogo} alt="YouTube (no disponible)" className={`${logoClass} opacity-50 cursor-not-allowed`} />
         )}
       </div>
     </div>
   );
-};
-
-export default EpisodeControls;
+}

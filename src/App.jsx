@@ -1,38 +1,39 @@
 // src/App.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Episode from "./components/Episode";
 
 const episodesList = [
   {
     id: 1,
-    title: "PLASMA Episode 12",
+    title: "Episode 001",
     imageUrl: "/covers/episodio_1.png",
-    mixcloudUrl: "https://www.mixcloud.com/Black_sessions/black-sessions-118-mati-guarnaccia/",
-    youtubeUrl: "https://www.youtube.com/watch?v=XXXXXX",
+    audioUrl: "/audio/ep001.mp3",
+    mixcloudUrl: "https://www.mixcloud.com/",
+    youtubeUrl: "https://www.youtube.com/",
   },
-  {
-    id: 2,
-    title: "PLASMA Episode 13",
-    imageUrl: "/covers/episodio_1.png",
-    mixcloudUrl: "https://www.mixcloud.com/username/episode-13/",
-    youtubeUrl: "https://www.youtube.com/watch?v=YYYYYY",
-  },
-  // más episodios...
 ];
 
 function App() {
   const [currentEpisode, setCurrentEpisode] = useState(episodesList[0]);
+
+
+  useEffect(() => {
+    const onLoadFromGallery = (e) => setCurrentEpisode(e.detail);
+    window.addEventListener("loadEpisodeFromGallery", onLoadFromGallery);
+    return () => window.removeEventListener("loadEpisodeFromGallery", onLoadFromGallery);
+  }, []);
 
   return (
     <div className="App">
       <Episode
         title={currentEpisode.title}
         imageUrl={currentEpisode.imageUrl}
+        audioUrl={currentEpisode.audioUrl}
         mixcloudUrl={currentEpisode.mixcloudUrl}
         youtubeUrl={currentEpisode.youtubeUrl}
-        waveColor="#0ff"
-        progressColor="#ff0"
-        cursorColor="#fff"
+        waveColor="#00E5FF"      // color de la parte no reproducida
+        progressColor="#FFFFFF"  // color de la parte reproducida
+        cursorColor="#FFFFFF"    // línea del cursor + color del slider (ver abajo)
         episodes={episodesList}
         currentEpisode={currentEpisode}
         setCurrentEpisode={setCurrentEpisode}
