@@ -1,0 +1,18 @@
+[
+  {
+    "id": "001",
+    "title": "EPISODE 001",
+    "cover": "/covers/episodio_1.png",
+    "audio": "/audio/ep001.wav",
+    "mixcloudUrl": "https://mixcloud.com/tu-enlace",
+    "youtubeUrl": "https://youtube.com/tu-enlace"
+  },
+  {
+    "id": "002",
+    "title": "EPISODE 002",
+    "cover": "/covers/ep002.jpg",
+    "audio": "/audio/ep002.wav",
+    "mixcloudUrl": "https://mixcloud.com/otro-enlace",
+    "youtubeUrl": "https://youtube.com/otro-enlace"
+  }
+]

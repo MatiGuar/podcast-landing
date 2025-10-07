@@ -1,0 +1,14 @@
+{
+  "episodes": [
+    {
+      "title": "Episode 001",
+      "image": "/images/episode001.png",
+      "audioUrl": "/audio/episode001.mp3",
+      "waveColor": "#8E44AD",
+      "progressColor": "#00FFFF",
+      "cursorColor": "#39FF14",
+      "mixcloudUrl": "https://mixcloud.com/episodio001",
+      "youtubeUrl": "https://youtube.com/episodio001"
+    }
+  ]
+}
